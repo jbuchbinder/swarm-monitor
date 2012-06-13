@@ -31,3 +31,29 @@ Alerting and escalation, using BRPOPLPUSH to wait for notifications,
 then follow a particular escalation pattern based on the notifications
 which need to be sent.
 
+## Data Structures
+
+### Checks
+
+monitor:index:checks SET - all checks
+monitor:checks:KEY
+monitor:checks:KEY:hosts SET- consists of host keys
+monitor:checks:KEY:groups SET - consist of group keys
+
+### Hosts
+
+monitor:hosts:KEY
+
+### Groups
+
+monitor:groups:KEY
+
+### Contacts
+
+monitor:contacts:KEY
+
+## Queues
+
+monitor:queue:alert SET - active alert/notification queue
+monitor:queue:poll SET - active poll queue
+
