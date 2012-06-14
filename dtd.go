@@ -10,7 +10,8 @@ type HostDefinition struct {
 }
 
 type PollCheck struct {
-	Host      string `json:"host"`
-	Group     string `json:"group"`
-	CheckName string `json:"check"`
+	Host        string `json:"host"`
+	Group       string `json:"group"`
+	CheckName   string `json:"check"`
+	EnqueueTime uint64 `json:"enqueue_time"`
 }
