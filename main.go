@@ -61,7 +61,7 @@ func threadAlert(threadNum int) {
 	}
 	log.Info(fmt.Sprintf("Starting alert thread #%d", threadNum))
 	for {
-		log.Info(fmt.Sprintf("[%d] BLPOP %s 10", threadNum, ALERT_QUEUE))
+		//log.Info(fmt.Sprintf("[%d] BLPOP %s 10", threadNum, ALERT_QUEUE))
 		out, oerr := c.Blpop(ALERT_QUEUE, 0)
 		if oerr != nil {
 			log.Err(fmt.Sprintf("[ALERT %d] %s", threadNum, oerr.Error()))
