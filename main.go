@@ -9,10 +9,12 @@ import (
 )
 
 const (
-	SERVICE_NAME = "monitor"
-	ALERT_QUEUE  = SERVICE_NAME + ":queue:alert"
-	POLL_QUEUE   = SERVICE_NAME + ":queue:poll"
-	CHECKS_LIST  = SERVICE_NAME + ":index:checks"
+	SERVICE_NAME          = "monitor"
+	CONTROL_THREAD_LOCK   = SERVICE_NAME + ":lock:control"
+	ALERT_QUEUE           = SERVICE_NAME + ":queue:alert"
+	POLL_QUEUE            = SERVICE_NAME + ":queue:poll"
+	CHECKS_LIST           = SERVICE_NAME + ":index:checks"
+	CONTROL_THREAD_EXPIRY = 60
 )
 
 var (
@@ -21,6 +23,7 @@ var (
 	redisDb   = flag.Int("dbnum", 13, "Redis db number")
 	poolSize  = flag.Int("pool", 5, "Thread pool size")
 	webPort   = flag.Int("webport", 48666, "Web listening port")
+	hostId    = flag.Int("hostid", 1, "Server host id for cluster")
 	log, _    = syslog.New(syslog.LOG_DEBUG, SERVICE_NAME)
 )
 
