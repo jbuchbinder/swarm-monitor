@@ -35,25 +35,25 @@ which need to be sent.
 
 ### Checks
 
-monitor:index:checks SET - all checks
-monitor:checks:KEY
-monitor:checks:KEY:hosts SET- consists of host keys
-monitor:checks:KEY:groups SET - consist of group keys
+swarm:index:checks SET - all checks
+swarm:checks:KEY
+swarm:checks:KEY:hosts SET- consists of host keys
+swarm:checks:KEY:groups SET - consist of group keys
 
 ### Hosts
 
-monitor:hosts:KEY
+swarm:hosts:KEY
 
 ### Groups
 
-monitor:groups:KEY
+swarm:groups:KEY
 
 ### Contacts
 
-monitor:contacts:KEY
+swarm:contacts:KEY
 
 ## Queues
 
-monitor:queue:alert SET - active alert/notification queue
-monitor:queue:poll SET - active poll queue
+swarm:queue:alert SET - active alert/notification queue
+swarm:queue:poll SET - active poll queue
 

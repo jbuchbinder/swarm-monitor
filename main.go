@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	SERVICE_NAME          = "monitor"
+	SERVICE_NAME          = "swarm"
 	CONTROL_THREAD_LOCK   = SERVICE_NAME + ":lock:control"
 	ALERT_QUEUE           = SERVICE_NAME + ":queue:alert"
 	POLL_QUEUE            = SERVICE_NAME + ":queue:poll"

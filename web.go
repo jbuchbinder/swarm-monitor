@@ -15,5 +15,6 @@ func threadWeb() {
 		MaxHeaderBytes: 1 << 20,
 	}
 	//http.HandleFunc("/control", httpControlHandler)
+	http.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir("web"))))
 	httpServer.ListenAndServe()
 }
