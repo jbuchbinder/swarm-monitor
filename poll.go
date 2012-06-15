@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -44,14 +45,15 @@ func threadPoll(threadNum int) {
 						// Get check information
 
 						// Process differently, depending on check type
-						checkType := 1 // TODO: FIXME: FIXME: XXX: HACK
+						checkType := check.Type
 						switch {
 						case checkType == CHECK_TYPE_NAGIOS:
 							{
+								cmdParts := strings.Split(strings.Replace(check.Command, "$HOSTADDRESS$", check.Host, -1), " ")
 								// Do all appropriate substitutions
 								cmd := &exec.Cmd{
-									Path: "/usr/lib64/nagios/plugins/check_nrpe",
-									Args: []string{"/usr/lib64/nagios/plugins/check_nrpe", "-H", "127.0.0.1", "-c", "check_disk"},
+									Path: cmdParts[0],
+									Args: cmdParts,
 								}
 								var bout bytes.Buffer
 								cmd.Stdout = &bout
@@ -60,7 +62,12 @@ func threadPoll(threadNum int) {
 									log.Err(err.Error())
 								} else {
 									// TODO: Configurable timeout for Nagios plugins
-									msg, _ := WaitTimeout(cmd.Process, 30*time.Second)
+									msg, cerr := WaitTimeout(cmd.Process, 30*time.Second)
+									if cerr != nil {
+										// Handle timeout
+									} else {
+										// Handle return status
+									}
 									log.Info(fmt.Sprintf("Returned : %q\n", msg))
 								}
 							}

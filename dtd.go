@@ -13,5 +13,7 @@ type PollCheck struct {
 	Host        string `json:"host"`
 	Group       string `json:"group"`
 	CheckName   string `json:"check"`
+	Command     string `json:"command"`
+	Type        uint   `json:"check_type"`
 	EnqueueTime uint64 `json:"enqueue_time"`
 }

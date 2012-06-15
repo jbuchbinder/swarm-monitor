@@ -76,7 +76,14 @@ func threadControl() {
 						// be scheduled for another run, and push onto POLL_QUEUE.
 						intervalRaw, err := c.Hget(string(members[i]), "interval")
 						interval, _ := strconv.ParseUint(string(intervalRaw), 10, 64)
+
+						command, err := c.Hget(string(members[i]), "command")
+
+						typeRaw, err := c.Hget(string(members[i]), "type")
+						checkType, _ := strconv.ParseUint(string(typeRaw), 10, 32)
+
 						curtime := uint64(time.Now().Unix())
+
 						items, err := c.Hgetall(string(members[i]) + ":hosts")
 						if err == nil {
 							for j := 0; j < len(items)/2; j += 2 {
@@ -95,6 +102,8 @@ func threadControl() {
 										Host:        host,
 										CheckName:   string(members[i]),
 										EnqueueTime: curtime,
+										Type:        uint(checkType),
+										Command:     string(command),
 									}
 									o, err := json.Marshal(obj)
 									if err == nil {
