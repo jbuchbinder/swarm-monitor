@@ -5,9 +5,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
+	"syscall"
 	"time"
 )
+
+func WaitTimeout(p *os.Process, timeout time.Duration) (*os.ProcessState, error) {
+	timer := time.AfterFunc(timeout, func() { Kill(p) })
+	defer timer.Stop()
+	return p.Wait()
+}
+
+func Kill(p *os.Process) {
+	syscall.Kill(p.Pid, syscall.SIGKILL)
+}
 
 func threadPoll(threadNum int) {
 	log.Info(fmt.Sprintf("Starting poll thread #%d", threadNum))
@@ -43,11 +55,13 @@ func threadPoll(threadNum int) {
 								}
 								var bout bytes.Buffer
 								cmd.Stdout = &bout
-								err := cmd.Run()
+								err := cmd.Start()
 								if err != nil {
 									log.Err(err.Error())
 								} else {
-									log.Info(fmt.Sprintf("Returned : %q\n", bout.String()))
+									// TODO: Configurable timeout for Nagios plugins
+									msg, _ := WaitTimeout(cmd.Process, 30*time.Second)
+									log.Info(fmt.Sprintf("Returned : %q\n", msg))
 								}
 							}
 						}
