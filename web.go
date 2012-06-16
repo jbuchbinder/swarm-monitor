@@ -5,6 +5,7 @@ import (
 	"./lib/redis"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -88,6 +89,18 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 					{
 						log.Debug("Unknown key " + k + " sighted in host " + hmember)
 					}
+				}
+			}
+
+			// Get list of checks
+			h, e := c.Hgetall(hmember + ":checks")
+			if e != nil {
+				log.Err(e.Error())
+			} else {
+				hdef.Checks = make([]string, len(h)/2)
+				for j := 0; j < len(h); j += 2 {
+					k := string(h[j])
+					hdef.Checks[j/2] = strings.Replace(k, CHECK_PREFIX+":", "", -1)
 				}
 			}
 
