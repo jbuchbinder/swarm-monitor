@@ -5,8 +5,9 @@ const (
 )
 
 type HostDefinition struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
+	Name    string   `json:"name"`
+	Address string   `json:"address"`
+	Checks  []string `json:"checks"`
 }
 
 type PollCheck struct {

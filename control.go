@@ -97,6 +97,11 @@ func threadControl() {
 									if e != nil {
 										log.Err(e.Error())
 									}
+									// Also update reverse index
+									e = c.Hset(host+":checks", string(members[i]), []byte(fmt.Sprint(curtime)))
+									if e != nil {
+										log.Err(e.Error())
+									}
 									// Form JSON object to serialize onto the scheduler stack
 									obj := PollCheck{
 										Host:        host,

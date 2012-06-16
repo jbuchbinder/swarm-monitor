@@ -13,6 +13,9 @@ const (
 	CONTROL_THREAD_LOCK   = SERVICE_NAME + ":lock:control"
 	ALERT_QUEUE           = SERVICE_NAME + ":queue:alert"
 	POLL_QUEUE            = SERVICE_NAME + ":queue:poll"
+	HOSTS_LIST            = SERVICE_NAME + ":index:hosts"
+	HOST_PREFIX           = SERVICE_NAME + ":hosts"
+	CHECK_PREFIX          = SERVICE_NAME + ":checks"
 	CHECKS_LIST           = SERVICE_NAME + ":index:checks"
 	CONTROL_THREAD_EXPIRY = 60
 )
