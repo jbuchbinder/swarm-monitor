@@ -62,13 +62,26 @@ func threadPoll(threadNum int) {
 									log.Err(err.Error())
 								} else {
 									// TODO: Configurable timeout for Nagios plugins
+									var exitStatus int
 									msg, cerr := WaitTimeout(cmd.Process, 30*time.Second)
 									if cerr != nil {
 										// Handle timeout
+
+										// WARNING: This is UNIX/Linux specific. For Windows,
+										// this would need to be followed:
+										//·https://groups.google.com/d/msg/golang-nuts/8XIlxWgpdJw/Z8s2N-SoWHsJ
+
+										if msg, ok := err.(*exec.ExitError); ok { // there is error code
+											exitStatus = msg.Sys().(syscall.WaitStatus).ExitStatus()
+										} else {
+											// Okay status
+											exitStatus = 0
+										}
 									} else {
 										// Handle return status
+										exitStatus = 0
 									}
-									log.Info(fmt.Sprintf("Returned : %q\n", msg))
+									log.Info(fmt.Sprintf("Returned : %d:%q\n", exitStatus, msg))
 								}
 							}
 						}
