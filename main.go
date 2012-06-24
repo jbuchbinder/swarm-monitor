@@ -17,6 +17,9 @@ const (
 	HOST_PREFIX           = SERVICE_NAME + ":hosts"
 	CHECK_PREFIX          = SERVICE_NAME + ":checks"
 	CHECKS_LIST           = SERVICE_NAME + ":index:checks"
+	HISTORY_BASE          = SERVICE_NAME + ":history"
+	HISTORY_LIST          = HISTORY_BASE + ":index"
+	HISTORY_KEY           = HISTORY_BASE + ":key"
 	CONTROL_THREAD_EXPIRY = 60
 )
 
