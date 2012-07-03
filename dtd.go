@@ -1,3 +1,8 @@
+// SWARM Distributed Monitoring System
+// https://github.com/jbuchbinder/swarm-monitor
+//
+// vim: tabstop=2:softtabstop=2:shiftwidth=2:noexpandtab
+
 package main
 
 import (
@@ -60,6 +65,12 @@ type PollCheck struct {
 	Command     string `json:"command"`
 	Type        uint   `json:"check_type"`
 	EnqueueTime uint64 `json:"enqueue_time"`
+}
+
+type Contact struct {
+	Name         string `json:"name"`
+	DisplayName  string `json:"display_name"`
+	EmailAddress string `json:"email"`
 }
 
 type CheckStatus struct {

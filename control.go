@@ -1,3 +1,8 @@
+// SWARM Distributed Monitoring System
+// https://github.com/jbuchbinder/swarm-monitor
+//
+// vim: tabstop=2:softtabstop=2:shiftwidth=2:noexpandtab
+
 package main
 
 import (

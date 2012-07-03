@@ -1,3 +1,8 @@
+// SWARM Distributed Monitoring System
+// https://github.com/jbuchbinder/swarm-monitor
+//
+// vim: tabstop=2:softtabstop=2:shiftwidth=2:noexpandtab
+
 package main
 
 import (
@@ -15,6 +20,10 @@ type ApiService struct {
 	// Hosts
 	apiAddHost  gorest.EndPoint `method:"POST" path:"/hosts/" postdata:"HostDefinition"`
 	apiGetHosts gorest.EndPoint `method:"GET" path:"/hosts/" postdata:"[]HostDefinition"`
+
+	// Contacts
+	apiAddContact  gorest.EndPoint `method:"POST" path:"/contacts/" postdata:"Contact"`
+	apiGetContacts gorest.EndPoint `method:"GET" path:"/contacts/" postdata:"[]Contact"`
 
 	// Checks/statuses
 	apiGetStatus gorest.EndPoint `method:"GET" path:"/status/" postdata:"[]CheckStatus"`
@@ -108,6 +117,93 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 			}
 
 			ret[i] = hdef
+		}
+	}
+
+	return ret
+}
+
+func (serv ApiService) ApiAddContact(d Contact) {
+	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
+	if err != nil {
+		log.Err(err.Error())
+		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
+		return
+	}
+
+	// Check for existing host definition
+	exists, err := c.Sismember(CONTACT_LIST, []byte(CONTACT_PREFIX+":"+d.Name))
+	if err != nil {
+		log.Err(err.Error())
+		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
+		return
+	}
+	if exists {
+		serv.ResponseBuilder().SetResponseCode(409).WriteAndOveride([]byte("Contact already exists"))
+		return
+	}
+
+	// All clear, add the contact
+	k := CONTACT_PREFIX + ":" + d.Name
+	c.Sadd(CONTACT_LIST, []byte(k))
+	c.Hset(k, "name", []byte(d.Name))
+	c.Hset(k, "display_name", []byte(d.DisplayName))
+	c.Hset(k, "email", []byte(d.EmailAddress))
+
+	serv.ResponseBuilder().Created("/api/contacts/" + k)
+}
+
+func (serv ApiService) ApiGetContacts() (r []Contact) {
+	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
+	if err != nil {
+		log.Err(err.Error())
+		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
+		return
+	}
+
+	cmembers, e := c.Smembers(CONTACT_LIST)
+	if e != nil {
+		log.Err(e.Error())
+		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
+		return
+	}
+
+	ret := make([]Contact, len(cmembers))
+
+	for i := 0; i < len(cmembers); i++ {
+		cmember := string(cmembers[i])
+
+		cdef := Contact{}
+
+		// Grab full info from member
+		h, e := c.Hgetall(cmember)
+		if e != nil {
+			log.Err(e.Error())
+		} else {
+			for j := 0; j < len(h); j += 2 {
+				k := string(h[j])
+				v := string(h[j+1])
+				switch k {
+				case "name":
+					{
+						cdef.Name = v
+					}
+				case "display_name":
+					{
+						cdef.DisplayName = v
+					}
+				case "email":
+					{
+						cdef.EmailAddress = v
+					}
+				default:
+					{
+						log.Debug("Unknown key " + k + " sighted in contact " + cmember)
+					}
+				}
+			}
+
+			ret[i] = cdef
 		}
 	}
 

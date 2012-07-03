@@ -1,3 +1,8 @@
+// SWARM Distributed Monitoring System
+// https://github.com/jbuchbinder/swarm-monitor
+//
+// vim: tabstop=2:softtabstop=2:shiftwidth=2:noexpandtab
+
 package main
 
 import (
@@ -20,6 +25,8 @@ const (
 	HISTORY_BASE          = SERVICE_NAME + ":history"
 	HISTORY_LIST          = HISTORY_BASE + ":index"
 	HISTORY_KEY           = HISTORY_BASE + ":key"
+	CONTACT_PREFIX        = SERVICE_NAME + ":contact"
+	CONTACT_LIST          = SERVICE_NAME + ":index:contacts"
 	CONTROL_THREAD_EXPIRY = 60
 	REDIS_READONLY        = false
 	REDIS_READWRITE       = true

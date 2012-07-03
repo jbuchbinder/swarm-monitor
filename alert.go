@@ -1,3 +1,8 @@
+// SWARM Distributed Monitoring System
+// https://github.com/jbuchbinder/swarm-monitor
+//
+// vim: tabstop=2:softtabstop=2:shiftwidth=2:noexpandtab
+
 package main
 
 import (
@@ -5,6 +10,28 @@ import (
 	"fmt"
 	"time"
 )
+
+func getContact(c redis.Client, name string) Contact {
+	contact := Contact{}
+	items, err := c.Hgetall(CONTACT_PREFIX + ":" + name)
+	if err == nil {
+		for j := 0; j < len(items)/2; j += 2 {
+			k := string(items[j])
+			v := string(items[j+1])
+			switch k {
+			case "name":
+				{
+					contact.Name = v
+				}
+			case "email":
+				{
+					contact.EmailAddress = v
+				}
+			}
+		}
+	}
+	return contact
+}
 
 func threadAlert(threadNum int) {
 	c, cerr := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
