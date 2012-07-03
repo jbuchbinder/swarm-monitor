@@ -22,9 +22,14 @@ func Kill(p *os.Process) {
 	syscall.Kill(p.Pid, syscall.SIGKILL)
 }
 
+func updateCheckResults(c redis.Client, host string, check string, status int32, statusText string) {
+	log.Info(fmt.Sprintf("updateCheckResults %s %s : %d [%s]", host, check, status, statusText))
+	// TODO: persist update check results
+}
+
 func threadPoll(threadNum int) {
 	log.Info(fmt.Sprintf("Starting poll thread #%d", threadNum))
-	c, cerr := redis.NewSynchClientWithSpec(getConnection(true).connspec)
+	c, cerr := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if cerr != nil {
 		log.Info(fmt.Sprintf("Poll thread #%d unable to acquire db connection", threadNum))
 		return
@@ -50,6 +55,9 @@ func threadPoll(threadNum int) {
 						case checkType == CHECK_TYPE_NAGIOS:
 							{
 								cmdParts := strings.Split(strings.Replace(check.Command, "$HOSTADDRESS$", check.Host, -1), " ")
+
+								// TODO: Handle additional options, substitutions and overrides
+
 								// Do all appropriate substitutions
 								cmd := &exec.Cmd{
 									Path: cmdParts[0],
@@ -69,7 +77,7 @@ func threadPoll(threadNum int) {
 
 										// WARNING: This is UNIX/Linux specific. For Windows,
 										// this would need to be followed:
-										//·https://groups.google.com/d/msg/golang-nuts/8XIlxWgpdJw/Z8s2N-SoWHsJ
+										// https://groups.google.com/d/msg/golang-nuts/8XIlxWgpdJw/Z8s2N-SoWHsJ
 
 										if msg, ok := err.(*exec.ExitError); ok { // there is error code
 											exitStatus = msg.Sys().(syscall.WaitStatus).ExitStatus()
@@ -82,6 +90,7 @@ func threadPoll(threadNum int) {
 										exitStatus = 0
 									}
 									log.Info(fmt.Sprintf("Returned : %d:%q\n", exitStatus, msg))
+									updateCheckResults(c, check.Host, check.CheckName, int32(exitStatus), msg.String())
 								}
 							}
 						}

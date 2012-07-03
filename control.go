@@ -46,7 +46,7 @@ func threadControl() {
 
 	log.Info("Starting control thread")
 
-	c, err := redis.NewSynchClientWithSpec(getConnection(true).connspec)
+	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if err != nil {
 		log.Err(err.Error())
 		return

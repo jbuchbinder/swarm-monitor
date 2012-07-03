@@ -15,10 +15,13 @@ type ApiService struct {
 	// Hosts
 	apiAddHost  gorest.EndPoint `method:"POST" path:"/hosts/" postdata:"HostDefinition"`
 	apiGetHosts gorest.EndPoint `method:"GET" path:"/hosts/" postdata:"[]HostDefinition"`
+
+	// Checks/statuses
+	apiGetStatus gorest.EndPoint `method:"GET" path:"/status/" postdata:"[]CheckStatus"`
 }
 
 func (serv ApiService) ApiAddHost(h HostDefinition) {
-	c, err := redis.NewSynchClientWithSpec(getConnection(true).connspec)
+	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if err != nil {
 		log.Err(err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
@@ -47,7 +50,7 @@ func (serv ApiService) ApiAddHost(h HostDefinition) {
 }
 
 func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
-	c, err := redis.NewSynchClientWithSpec(getConnection(true).connspec)
+	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
 	if err != nil {
 		log.Err(err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
@@ -107,6 +110,28 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 			ret[i] = hdef
 		}
 	}
+
+	return ret
+}
+
+func (serv ApiService) ApiGetStatus() (r []CheckStatus) {
+	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
+	if err != nil {
+		log.Err(err.Error())
+		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
+		return
+	}
+
+	cmembers, e := c.Smembers(CHECKS_LIST)
+	if e != nil {
+		log.Err(e.Error())
+		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
+		return
+	}
+
+	ret := make([]CheckStatus, len(cmembers))
+
+	// TODO: FIXME: XXX: pull statuses to return!
 
 	return ret
 }

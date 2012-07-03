@@ -21,6 +21,8 @@ const (
 	HISTORY_LIST          = HISTORY_BASE + ":index"
 	HISTORY_KEY           = HISTORY_BASE + ":key"
 	CONTROL_THREAD_EXPIRY = 60
+	REDIS_READONLY        = false
+	REDIS_READWRITE       = true
 )
 
 var (

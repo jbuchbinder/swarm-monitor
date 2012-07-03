@@ -7,7 +7,7 @@ import (
 )
 
 func threadAlert(threadNum int) {
-	c, cerr := redis.NewSynchClientWithSpec(getConnection(true).connspec)
+	c, cerr := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if cerr != nil {
 		log.Info(fmt.Sprintf("Alert thread #%d unable to acquire db connection", threadNum))
 		return
