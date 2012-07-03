@@ -10,6 +10,8 @@ type HistoryEvent struct {
 	Timestamp  time.Time
 	Id         int64
 	HistoryKey string
+	Host       string
+	Check      string
 	// TODO: FIXME: More keys
 }
 
@@ -41,21 +43,30 @@ func (ev *HistoryEvent) persistEvent(c redis.Client) {
 
 	// Build additional indices...
 	// 1. Master index.
-	err = c.Rpush(HISTORY_LIST, []byte(historyKey))
+	_, err = c.Zadd(HISTORY_LIST, float64(ev.Timestamp.Unix()), []byte(historyKey))
 	if err != nil {
 		log.Err(err.Error())
 	}
 
 	// 2. Date index
 	log.Info("Logging to " + HISTORY_LIST + ":date:" + ev.Timestamp.Format("%Y-%m-%d"))
-	err = c.Rpush(HISTORY_LIST+":date:"+ev.Timestamp.Format("%Y-%m-%d"), []byte(historyKey))
+	_, err = c.Zadd(HISTORY_LIST+":date:"+ev.Timestamp.Format("%Y-%m-%d"), float64(ev.Timestamp.Unix()), []byte(historyKey))
 	if err != nil {
 		log.Err(err.Error())
 	}
 
 	// 3. Host index
-	// TODO: FIXME
+	log.Info("Logging to " + HISTORY_LIST + ":host:" + ev.Host)
+	_, err = c.Zadd(HISTORY_LIST+":host:"+ev.Host, float64(ev.Timestamp.Unix()), []byte(historyKey))
+	if err != nil {
+		log.Err(err.Error())
+	}
 
-	// 4. Service index
-	// TODO: FIXME
+	// 4. Check index
+	log.Info("Logging to " + HISTORY_LIST + ":check:" + ev.Check)
+	_, err = c.Zadd(HISTORY_LIST+":check:"+ev.Check, float64(ev.Timestamp.Unix()), []byte(historyKey))
+	if err != nil {
+		log.Err(err.Error())
+	}
+
 }
