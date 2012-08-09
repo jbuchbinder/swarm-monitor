@@ -1,3 +1,4 @@
 language: go
+install: go build -v
 before_install:
   git submodule init && git submodule --quiet update
