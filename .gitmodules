@@ -1,3 +1,0 @@
-[submodule "lib/redis"]
-	path = lib/redis
-	url = git://github.com/jbuchbinder/go-redis.git

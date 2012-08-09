@@ -6,7 +6,7 @@
 package main
 
 import (
-	"./lib/redis"
+	redis "github.com/jbuchbinder/go-redis"
 	"bytes"
 	"encoding/json"
 	"fmt"

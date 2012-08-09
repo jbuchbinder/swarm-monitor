@@ -6,9 +6,9 @@
 package main
 
 import (
-	"./lib/gorest"
-	"./lib/redis"
+	"code.google.com/p/gorest"
 	"fmt"
+	redis "github.com/jbuchbinder/go-redis"
 	"net/http"
 	"strings"
 	"time"
