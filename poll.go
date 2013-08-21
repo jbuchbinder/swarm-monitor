@@ -6,10 +6,10 @@
 package main
 
 import (
-	redis "github.com/jbuchbinder/go-redis"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	redis "github.com/jbuchbinder/go-redis"
 	"os"
 	"os/exec"
 	"strings"

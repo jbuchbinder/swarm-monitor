@@ -6,9 +6,9 @@
 package main
 
 import (
-	redis "github.com/jbuchbinder/go-redis"
 	"flag"
 	"fmt"
+	redis "github.com/jbuchbinder/go-redis"
 	"log/syslog"
 	"time"
 )

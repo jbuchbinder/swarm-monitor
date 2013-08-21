@@ -6,9 +6,9 @@
 package main
 
 import (
-	redis "github.com/jbuchbinder/go-redis"
 	"encoding/json"
 	"fmt"
+	redis "github.com/jbuchbinder/go-redis"
 	"strconv"
 	"time"
 )

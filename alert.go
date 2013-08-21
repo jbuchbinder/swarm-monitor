@@ -6,8 +6,8 @@
 package main
 
 import (
-	redis "github.com/jbuchbinder/go-redis"
 	"fmt"
+	redis "github.com/jbuchbinder/go-redis"
 	"time"
 )
 
