@@ -59,9 +59,11 @@ func threadPoll(threadNum int) {
 						switch {
 						case checkType == CHECK_TYPE_NAGIOS:
 							{
-								cmdParts := strings.Split(strings.Replace(check.Command, "$HOSTADDRESS$", check.Host, -1), " ")
-
 								// TODO: Handle additional options, substitutions and overrides
+								replacer := ReplacerFromMap(map[string]string{
+									"$HOSTADDRESS$": check.Host,
+								})
+								cmdParts := strings.Split(replacer.Replace(check.Command), " ")
 
 								// Do all appropriate substitutions
 								cmd := &exec.Cmd{
