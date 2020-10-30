@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/fromkeith/gorest"
 	redis "github.com/jbuchbinder/go-redis"
+	"github.com/jbuchbinder/swarm-monitor/config"
 	"net/http"
 	"strings"
 	"time"
@@ -236,7 +237,7 @@ func threadWeb() {
 	log.Info("Starting web thread")
 	gorest.RegisterService(new(ApiService))
 	httpServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", *webPort),
+		Addr:           fmt.Sprintf(":%d", config.Config.Port),
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   5 * time.Second,
 		MaxHeaderBytes: 1 << 20,

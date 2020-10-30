@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	redis "github.com/jbuchbinder/go-redis"
+	"github.com/jbuchbinder/swarm-monitor/config"
 	"strconv"
 	"time"
 )
@@ -20,7 +21,7 @@ var (
 // Attempt to use SETNX to assert that we have the control thread.
 // If this happens, we have to set the expiration time.
 func grabControlThread(c redis.Client) bool {
-	val, err := c.Setnx(CONTROL_THREAD_LOCK, []byte(fmt.Sprint(*hostId)))
+	val, err := c.Setnx(CONTROL_THREAD_LOCK, []byte(fmt.Sprint(config.Config.HostID)))
 	if err == nil {
 		if val {
 			// New lock acquired, attempt to set expiry properly

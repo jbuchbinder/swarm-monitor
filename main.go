@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	redis "github.com/jbuchbinder/go-redis"
+	"github.com/jbuchbinder/swarm-monitor/config"
 	"log/syslog"
 	"time"
 )
@@ -33,13 +34,8 @@ const (
 )
 
 var (
-	redisHost = flag.String("dbhost", "localhost", "Redis host")
-	redisPort = flag.Int("dbport", 6379, "Redis port")
-	redisDb   = flag.Int("dbnum", 13, "Redis db number")
-	poolSize  = flag.Int("pool", 5, "Thread pool size")
-	webPort   = flag.Int("webport", 48666, "Web listening port")
-	hostId    = flag.Int("hostid", 1, "Server host id for cluster")
-	log, _    = syslog.New(syslog.LOG_DEBUG, SERVICE_NAME)
+	configFile = flag.String("config", "swarm.yml", "YAML configuration file")
+	log, _     = syslog.New(syslog.LOG_DEBUG, SERVICE_NAME)
 )
 
 type redisConnection struct {
@@ -54,14 +50,14 @@ func getConnection(write bool) redisConnection {
 	var c redisConnection
 
 	if write {
-		c.host = *redisHost
-		c.port = *redisPort
-		c.db = *redisDb
+		c.host = config.Config.Database.Host
+		c.port = config.Config.Database.Port
+		c.db = config.Config.Database.Db
 		//c.password = ""
 	} else {
-		c.host = *redisHost
-		c.port = *redisPort
-		c.db = *redisDb
+		c.host = config.Config.Database.Host
+		c.port = config.Config.Database.Port
+		c.db = config.Config.Database.Db
 		//c.password = ""
 	}
 
@@ -73,6 +69,16 @@ func getConnection(write bool) redisConnection {
 
 func main() {
 	flag.Parse()
+
+	c, err := config.LoadConfigWithDefaults(*configFile)
+	if err != nil {
+		panic(err)
+	}
+	if c == nil {
+		panic("UNABLE TO LOAD CONFIG")
+	}
+	config.Config = c
+
 	log.Info("Starting " + SERVICE_NAME + " services")
 
 	// Control thread
@@ -81,7 +87,7 @@ func main() {
 	// Web thread
 	go threadWeb()
 
-	for t := 1; t <= *poolSize; t++ {
+	for t := 1; t <= config.Config.PoolSize; t++ {
 		log.Info(fmt.Sprintf("Attempting to spawn thread #%d", t))
 		go threadAlert(t)
 		go threadPoll(t)
