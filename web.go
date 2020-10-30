@@ -6,8 +6,8 @@
 package main
 
 import (
-	"code.google.com/p/gorest"
 	"fmt"
+	"github.com/fromkeith/gorest"
 	redis "github.com/jbuchbinder/go-redis"
 	"net/http"
 	"strings"
