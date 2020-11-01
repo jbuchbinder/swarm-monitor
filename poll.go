@@ -9,44 +9,42 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	redis "github.com/jbuchbinder/go-redis"
-	"os"
+	"log"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
+
+	redis "github.com/jbuchbinder/go-redis"
+	"github.com/jbuchbinder/swarm-monitor/checks"
+	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
-func WaitTimeout(p *os.Process, timeout time.Duration) (*os.ProcessState, error) {
-	timer := time.AfterFunc(timeout, func() { Kill(p) })
-	defer timer.Stop()
-	return p.Wait()
-}
-
-func Kill(p *os.Process) {
-	syscall.Kill(p.Pid, syscall.SIGKILL)
-}
-
 func updateCheckResults(c redis.Client, host string, check string, status int32, statusText string) {
-	log.Info(fmt.Sprintf("updateCheckResults %s %s : %d [%s]", host, check, status, statusText))
+	log.Printf("INFO: updateCheckResults %s %s : %d [%s]", host, check, status, statusText)
 	// TODO: persist update check results
 }
 
 func threadPoll(threadNum int) {
-	log.Info(fmt.Sprintf("Starting poll thread #%d", threadNum))
+	log.Printf("INFO: " + fmt.Sprintf("Starting poll thread #%d", threadNum))
 	c, cerr := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if cerr != nil {
-		log.Info(fmt.Sprintf("Poll thread #%d unable to acquire db connection", threadNum))
+		log.Printf("INFO: " + fmt.Sprintf("Poll thread #%d unable to acquire db connection", threadNum))
 		return
 	}
 	for {
+		if util.ShuttingDown {
+			log.Printf("INFO: thread %d shutting down", threadNum)
+			return
+		}
+
 		//log.Info(fmt.Sprintf("[%d] BLPOP %s 10", threadNum, POLL_QUEUE))
 		out, oerr := c.Blpop(POLL_QUEUE, 0)
 		if oerr != nil {
-			log.Err(fmt.Sprintf("[POLL %d] %s", threadNum, oerr.Error()))
+			log.Printf("ERR: [POLL %d] %s", threadNum, oerr.Error())
 		} else {
 			if out == nil {
-				log.Info(fmt.Sprintf("[ALERT %d] No output", threadNum))
+				log.Printf("INFO: [ALERT %d] No output", threadNum)
 			} else {
 				if len(out) == 2 {
 					check := PollCheck{}
@@ -57,10 +55,21 @@ func threadPoll(threadNum int) {
 						// Process differently, depending on check type
 						checkType := check.Type
 						switch {
-						case checkType == CHECK_TYPE_NAGIOS:
+						case checkType == checks.CheckTypeBuiltIn:
+							{
+								chk, err := checks.InstantiateChecker(check.Command)
+								if err != nil {
+									log.Printf("ERR: " + err.Error())
+									break
+								}
+								exitStatus, msg := chk.Check(check.Host)
+								log.Printf("INFO: " + fmt.Sprintf("Returned : %d:%q\n", exitStatus, msg))
+								updateCheckResults(c, check.Host, check.CheckName, int32(exitStatus), msg)
+							}
+						case checkType == checks.CheckTypeNagios:
 							{
 								// TODO: Handle additional options, substitutions and overrides
-								replacer := ReplacerFromMap(map[string]string{
+								replacer := util.ReplacerFromMap(map[string]string{
 									"$HOSTADDRESS$": check.Host,
 								})
 								cmdParts := strings.Split(replacer.Replace(check.Command), " ")
@@ -74,11 +83,11 @@ func threadPoll(threadNum int) {
 								cmd.Stdout = &bout
 								err := cmd.Start()
 								if err != nil {
-									log.Err(err.Error())
+									log.Printf("ERR: " + err.Error())
 								} else {
 									// TODO: Configurable timeout for Nagios plugins
 									var exitStatus int
-									msg, cerr := WaitTimeout(cmd.Process, 30*time.Second)
+									msg, cerr := util.WaitTimeout(cmd.Process, 30*time.Second)
 									if cerr != nil {
 										// Handle timeout
 
@@ -96,13 +105,13 @@ func threadPoll(threadNum int) {
 										// Handle return status
 										exitStatus = 0
 									}
-									log.Info(fmt.Sprintf("Returned : %d:%q\n", exitStatus, msg))
+									log.Printf("INFO: Returned : %d:%q\n", exitStatus, msg)
 									updateCheckResults(c, check.Host, check.CheckName, int32(exitStatus), msg.String())
 								}
 							}
 						}
 					} else {
-						log.Err(fmt.Sprintf("[ALERT %d] %s", threadNum, err.Error()))
+						log.Printf("ERR: [ALERT %d] %s", threadNum, err.Error())
 					}
 				}
 			}
@@ -110,5 +119,4 @@ func threadPoll(threadNum int) {
 		// Avoid potential pig-pile
 		time.Sleep(10 * time.Millisecond)
 	}
-	return
 }

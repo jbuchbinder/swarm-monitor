@@ -1,10 +1,10 @@
-package main
+package util
 
 import (
 	"strings"
 )
 
-// Create a strings.Replacer object from a map of orig => replacement
+// ReplacerFromMap creates a strings.Replacer object from a map of orig => replacement
 func ReplacerFromMap(args map[string]string) *strings.Replacer {
 	// Convert into array of 0 => key, 1 => val, 2 => key, etc...
 	arglist := make([]string, len(args)*2)

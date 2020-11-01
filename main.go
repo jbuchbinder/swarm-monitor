@@ -7,11 +7,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
+	"time"
+
 	redis "github.com/jbuchbinder/go-redis"
 	"github.com/jbuchbinder/swarm-monitor/config"
-	"log/syslog"
-	"time"
+	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
 const (
@@ -35,7 +36,7 @@ const (
 
 var (
 	configFile = flag.String("config", "swarm.yml", "YAML configuration file")
-	log, _     = syslog.New(syslog.LOG_DEBUG, SERVICE_NAME)
+	//log, _     = syslog.New(syslog.LOG_DEBUG, SERVICE_NAME)
 )
 
 type redisConnection struct {
@@ -79,19 +80,23 @@ func main() {
 	}
 	config.Config = c
 
-	log.Info("Starting " + SERVICE_NAME + " services")
+	log.Printf("INFO: Starting " + SERVICE_NAME + " services")
 
 	// Control thread
+	log.Printf("INFO: Starting control thread")
 	go threadControl()
 
 	// Web thread
-	go threadWeb()
+	log.Printf("INFO: Starting web thread")
+	//go threadWeb()
 
 	for t := 1; t <= config.Config.PoolSize; t++ {
-		log.Info(fmt.Sprintf("Attempting to spawn thread #%d", t))
+		log.Printf("INFO: Attempting to spawn thread #%d", t)
 		go threadAlert(t)
 		go threadPoll(t)
 	}
+
+	util.SetCloseHandler()
 
 	for {
 		time.Sleep(10 * time.Second)

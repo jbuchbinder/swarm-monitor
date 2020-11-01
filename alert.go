@@ -6,9 +6,10 @@
 package main
 
 import (
-	"fmt"
-	redis "github.com/jbuchbinder/go-redis"
+	"log"
 	"time"
+
+	redis "github.com/jbuchbinder/go-redis"
 )
 
 func getContact(c redis.Client, name string) Contact {
@@ -36,21 +37,21 @@ func getContact(c redis.Client, name string) Contact {
 func threadAlert(threadNum int) {
 	c, cerr := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if cerr != nil {
-		log.Info(fmt.Sprintf("Alert thread #%d unable to acquire db connection", threadNum))
+		log.Printf("INFO: Alert thread #%d unable to acquire db connection", threadNum)
 		return
 	}
-	log.Info(fmt.Sprintf("Starting alert thread #%d", threadNum))
+	log.Printf("INFO: Starting alert thread #%d", threadNum)
 	for {
 		//log.Info(fmt.Sprintf("[%d] BLPOP %s 10", threadNum, ALERT_QUEUE))
 		out, oerr := c.Blpop(ALERT_QUEUE, 0)
 		if oerr != nil {
-			log.Err(fmt.Sprintf("[ALERT %d] %s", threadNum, oerr.Error()))
+			log.Printf("ERR: [ALERT %d] %s", threadNum, oerr.Error())
 		} else {
 			if out == nil {
-				log.Info(fmt.Sprintf("[ALERT %d] No output", threadNum))
+				log.Printf("INFO: [ALERT %d] No output", threadNum)
 			} else {
 				if len(out) == 2 {
-					log.Info(string(out[1]))
+					log.Printf("INFO: " + string(out[1]))
 				}
 			}
 		}

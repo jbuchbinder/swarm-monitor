@@ -7,49 +7,40 @@ package main
 
 import (
 	"time"
-)
 
-const (
-	CHECK_TYPE_NAGIOS = 1
-
-	STATUS_OK       = 0
-	STATUS_WARNING  = 1
-	STATUS_CRITICAL = 2
-	STATUS_UNKNOWN  = 3
+	"github.com/jbuchbinder/swarm-monitor/checks"
 )
 
 type Status int
 
 func (s Status) String() string {
 	switch s {
-	case STATUS_OK:
+	case checks.StatusOK:
 		return "OK"
-	case STATUS_WARNING:
+	case checks.StatusWarning:
 		return "WARNING"
-	case STATUS_CRITICAL:
+	case checks.StatusCritical:
 		return "CRITICAL"
-	case STATUS_UNKNOWN:
+	case checks.StatusUnknown:
 		return "UNKNOWN"
 	default:
 		return "UNKNOWN"
 	}
-	return "UNKNOWN"
 }
 
 func NewStatus(s string) Status {
 	switch s {
 	case "OK":
-		return STATUS_OK
+		return checks.StatusOK
 	case "WARNING":
-		return STATUS_WARNING
+		return checks.StatusWarning
 	case "CRITICAL":
-		return STATUS_CRITICAL
+		return checks.StatusCritical
 	case "UNKNOWN":
-		return STATUS_UNKNOWN
+		return checks.StatusUnknown
 	default:
-		return STATUS_UNKNOWN
+		return checks.StatusUnknown
 	}
-	return STATUS_UNKNOWN
 }
 
 type HostDefinition struct {

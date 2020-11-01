@@ -7,12 +7,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/fromkeith/gorest"
-	redis "github.com/jbuchbinder/go-redis"
-	"github.com/jbuchbinder/swarm-monitor/config"
+	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/fromkeith/gorest"
+	redis "github.com/jbuchbinder/go-redis"
+	"github.com/jbuchbinder/swarm-monitor/config"
 )
 
 type ApiService struct {
@@ -33,7 +35,7 @@ type ApiService struct {
 func (serv ApiService) ApiAddHost(h HostDefinition) {
 	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if err != nil {
-		log.Err(err.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -41,7 +43,7 @@ func (serv ApiService) ApiAddHost(h HostDefinition) {
 	// Check for existing host definition
 	exists, err := c.Sismember(HOSTS_LIST, []byte(HOST_PREFIX+":"+h.Name))
 	if err != nil {
-		log.Err(err.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -62,14 +64,14 @@ func (serv ApiService) ApiAddHost(h HostDefinition) {
 func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
 	if err != nil {
-		log.Err(err.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
 
 	hmembers, e := c.Smembers(HOSTS_LIST)
 	if e != nil {
-		log.Err(e.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -84,7 +86,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 		// Grab full info from member
 		h, e := c.Hgetall(hmember)
 		if e != nil {
-			log.Err(e.Error())
+			log.Printf("ERR: " + e.Error())
 		} else {
 			for j := 0; j < len(h); j += 2 {
 				k := string(h[j])
@@ -100,7 +102,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 					}
 				default:
 					{
-						log.Debug("Unknown key " + k + " sighted in host " + hmember)
+						log.Printf("DEBUG: Unknown key " + k + " sighted in host " + hmember)
 					}
 				}
 			}
@@ -108,7 +110,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 			// Get list of checks
 			h, e := c.Hgetall(hmember + ":checks")
 			if e != nil {
-				log.Err(e.Error())
+				log.Printf("ERR: " + err.Error())
 			} else {
 				hdef.Checks = make([]string, len(h)/2)
 				for j := 0; j < len(h); j += 2 {
@@ -127,7 +129,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 func (serv ApiService) ApiAddContact(d Contact) {
 	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
 	if err != nil {
-		log.Err(err.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -135,7 +137,7 @@ func (serv ApiService) ApiAddContact(d Contact) {
 	// Check for existing host definition
 	exists, err := c.Sismember(CONTACT_LIST, []byte(CONTACT_PREFIX+":"+d.Name))
 	if err != nil {
-		log.Err(err.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -157,14 +159,14 @@ func (serv ApiService) ApiAddContact(d Contact) {
 func (serv ApiService) ApiGetContacts() (r []Contact) {
 	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
 	if err != nil {
-		log.Err(err.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
 
 	cmembers, e := c.Smembers(CONTACT_LIST)
 	if e != nil {
-		log.Err(e.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -179,7 +181,7 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 		// Grab full info from member
 		h, e := c.Hgetall(cmember)
 		if e != nil {
-			log.Err(e.Error())
+			log.Printf("ERR: " + err.Error())
 		} else {
 			for j := 0; j < len(h); j += 2 {
 				k := string(h[j])
@@ -199,7 +201,7 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 					}
 				default:
 					{
-						log.Debug("Unknown key " + k + " sighted in contact " + cmember)
+						log.Printf("DEBUG: Unknown key " + k + " sighted in contact " + cmember)
 					}
 				}
 			}
@@ -214,14 +216,14 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 func (serv ApiService) ApiGetStatus() (r []CheckStatus) {
 	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
 	if err != nil {
-		log.Err(err.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
 
 	cmembers, e := c.Smembers(CHECKS_LIST)
 	if e != nil {
-		log.Err(e.Error())
+		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -234,7 +236,7 @@ func (serv ApiService) ApiGetStatus() (r []CheckStatus) {
 }
 
 func threadWeb() {
-	log.Info("Starting web thread")
+	log.Printf("INFO: Starting web thread")
 	gorest.RegisterService(new(ApiService))
 	httpServer := &http.Server{
 		Addr:           fmt.Sprintf(":%d", config.Config.Port),
