@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/fromkeith/gorest"
-	redis "github.com/jbuchbinder/go-redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/jbuchbinder/swarm-monitor/config"
 )
 
@@ -33,15 +33,10 @@ type ApiService struct {
 }
 
 func (serv ApiService) ApiAddHost(h HostDefinition) {
-	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
-	if err != nil {
-		log.Printf("ERR: " + err.Error())
-		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
-		return
-	}
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
 	// Check for existing host definition
-	exists, err := c.Sismember(HOSTS_LIST, []byte(HOST_PREFIX+":"+h.Name))
+	exists, err := c.SIsMember(ctx, HOSTS_LIST, []byte(HOST_PREFIX+":"+h.Name)).Result()
 	if err != nil {
 		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
@@ -54,24 +49,19 @@ func (serv ApiService) ApiAddHost(h HostDefinition) {
 
 	// All clear, add the host
 	k := HOST_PREFIX + ":" + h.Name
-	c.Sadd(HOSTS_LIST, []byte(k))
-	c.Hset(k, "name", []byte(h.Name))
-	c.Hset(k, "address", []byte(h.Address))
+	c.SAdd(ctx, HOSTS_LIST, []byte(k))
+	c.HSet(ctx, k, "name", []byte(h.Name))
+	c.HSet(ctx, k, "address", []byte(h.Address))
 
 	serv.ResponseBuilder().Created("/api/hosts/" + k)
 }
 
 func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
-	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
-	if err != nil {
-		log.Printf("ERR: " + err.Error())
-		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
-		return
-	}
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
-	hmembers, e := c.Smembers(HOSTS_LIST)
+	hmembers, e := c.SMembers(ctx, HOSTS_LIST).Result()
 	if e != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: " + e.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -84,13 +74,11 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 		hdef := HostDefinition{}
 
 		// Grab full info from member
-		h, e := c.Hgetall(hmember)
+		h, e := c.HGetAll(ctx, hmember).Result()
 		if e != nil {
 			log.Printf("ERR: " + e.Error())
 		} else {
-			for j := 0; j < len(h); j += 2 {
-				k := string(h[j])
-				v := string(h[j+1])
+			for k, v := range h {
 				switch k {
 				case "name":
 					{
@@ -108,14 +96,13 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 			}
 
 			// Get list of checks
-			h, e := c.Hgetall(hmember + ":checks")
+			h, e := c.HGetAll(ctx, hmember+":checks").Result()
 			if e != nil {
-				log.Printf("ERR: " + err.Error())
+				log.Printf("ERR: " + e.Error())
 			} else {
 				hdef.Checks = make([]string, len(h)/2)
-				for j := 0; j < len(h); j += 2 {
-					k := string(h[j])
-					hdef.Checks[j/2] = strings.Replace(k, CHECK_PREFIX+":", "", -1)
+				for _, k := range h {
+					hdef.Checks = append(hdef.Checks, strings.Replace(k, CHECK_PREFIX+":", "", -1))
 				}
 			}
 
@@ -127,15 +114,10 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 }
 
 func (serv ApiService) ApiAddContact(d Contact) {
-	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
-	if err != nil {
-		log.Printf("ERR: " + err.Error())
-		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
-		return
-	}
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
 	// Check for existing host definition
-	exists, err := c.Sismember(CONTACT_LIST, []byte(CONTACT_PREFIX+":"+d.Name))
+	exists, err := c.SIsMember(ctx, CONTACT_LIST, []byte(CONTACT_PREFIX+":"+d.Name)).Result()
 	if err != nil {
 		log.Printf("ERR: " + err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
@@ -148,25 +130,20 @@ func (serv ApiService) ApiAddContact(d Contact) {
 
 	// All clear, add the contact
 	k := CONTACT_PREFIX + ":" + d.Name
-	c.Sadd(CONTACT_LIST, []byte(k))
-	c.Hset(k, "name", []byte(d.Name))
-	c.Hset(k, "display_name", []byte(d.DisplayName))
-	c.Hset(k, "email", []byte(d.EmailAddress))
+	c.SAdd(ctx, CONTACT_LIST, []byte(k))
+	c.HSet(ctx, k, "name", []byte(d.Name))
+	c.HSet(ctx, k, "display_name", []byte(d.DisplayName))
+	c.HSet(ctx, k, "email", []byte(d.EmailAddress))
 
 	serv.ResponseBuilder().Created("/api/contacts/" + k)
 }
 
 func (serv ApiService) ApiGetContacts() (r []Contact) {
-	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
-	if err != nil {
-		log.Printf("ERR: " + err.Error())
-		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
-		return
-	}
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
-	cmembers, e := c.Smembers(CONTACT_LIST)
+	cmembers, e := c.SMembers(ctx, CONTACT_LIST).Result()
 	if e != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: " + e.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -179,13 +156,11 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 		cdef := Contact{}
 
 		// Grab full info from member
-		h, e := c.Hgetall(cmember)
+		h, e := c.HGetAll(ctx, cmember).Result()
 		if e != nil {
-			log.Printf("ERR: " + err.Error())
+			log.Printf("ERR: " + e.Error())
 		} else {
-			for j := 0; j < len(h); j += 2 {
-				k := string(h[j])
-				v := string(h[j+1])
+			for k, v := range h {
 				switch k {
 				case "name":
 					{
@@ -214,16 +189,11 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 }
 
 func (serv ApiService) ApiGetStatus() (r []CheckStatus) {
-	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READONLY).connspec)
-	if err != nil {
-		log.Printf("ERR: " + err.Error())
-		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
-		return
-	}
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
-	cmembers, e := c.Smembers(CHECKS_LIST)
+	cmembers, e := c.SMembers(ctx, CHECKS_LIST).Result()
 	if e != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: " + e.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -14,6 +15,9 @@ var (
 
 	// ShuttingDown checks to see if application is terminating
 	ShuttingDown = false
+
+	// RunningProcesses describes a wait group
+	RunningProcesses = &sync.WaitGroup{}
 )
 
 // SetCloseHandler starts up signal handlers for app termination
@@ -25,8 +29,8 @@ func SetCloseHandler() {
 		<-c
 		ShuttingDown = true
 		log.Printf("INFO: Ctrl+C pressed in Terminal")
-		log.Printf("Waiting 10 seconds for threads to terminate")
-		time.Sleep(time.Second * time.Duration(10))
+		log.Printf("Waiting for threads to terminate")
+		RunningProcesses.Wait()
 		os.Exit(0)
 	}()
 	go log.Println(<-ShutdownChannel)

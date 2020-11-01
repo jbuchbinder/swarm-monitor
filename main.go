@@ -6,11 +6,13 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
-	redis "github.com/jbuchbinder/go-redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/jbuchbinder/swarm-monitor/config"
 	"github.com/jbuchbinder/swarm-monitor/util"
 )
@@ -37,6 +39,8 @@ const (
 var (
 	configFile = flag.String("config", "swarm.yml", "YAML configuration file")
 	//log, _     = syslog.New(syslog.LOG_DEBUG, SERVICE_NAME)
+
+	ctx context.Context
 )
 
 type redisConnection struct {
@@ -44,7 +48,7 @@ type redisConnection struct {
 	port     int
 	password string
 	db       int
-	connspec *redis.ConnectionSpec
+	connspec *redis.Options
 }
 
 func getConnection(write bool) redisConnection {
@@ -62,7 +66,13 @@ func getConnection(write bool) redisConnection {
 		//c.password = ""
 	}
 
-	c.connspec = redis.DefaultSpec().Host(c.host).Port(c.port).Db(c.db)
+	c.connspec = &redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", c.host, c.port),
+		Password: c.password,
+		DB:       c.db,
+	}
+
+	//redis.DefaultSpec().Host(c.host).Port(c.port).Db(c.db)
 	//.Password(c.password)
 
 	return c
@@ -79,6 +89,8 @@ func main() {
 		panic("UNABLE TO LOAD CONFIG")
 	}
 	config.Config = c
+
+	ctx = context.Background()
 
 	log.Printf("INFO: Starting " + SERVICE_NAME + " services")
 

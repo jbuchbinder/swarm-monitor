@@ -13,26 +13,27 @@ import (
 	"strconv"
 	"time"
 
-	redis "github.com/jbuchbinder/go-redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/jbuchbinder/swarm-monitor/config"
 	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
 var (
+	// ControlThreadRunning says whether the control thread is currently active
 	ControlThreadRunning = false
 )
 
 // Attempt to use SETNX to assert that we have the control thread.
 // If this happens, we have to set the expiration time.
-func grabControlThread(c redis.Client) bool {
-	val, err := c.Setnx(CONTROL_THREAD_LOCK, []byte(fmt.Sprint(config.Config.HostID)))
+func grabControlThread(c *redis.Client) bool {
+	val, err := c.SetNX(ctx, CONTROL_THREAD_LOCK, []byte(fmt.Sprint(config.Config.HostID)), CONTROL_THREAD_EXPIRY).Result()
 	if err == nil {
 		if val {
 			// New lock acquired, attempt to set expiry properly
 			log.Printf("INFO: grabControlThread: Acquired lock")
-			_, err = c.Expire(CONTROL_THREAD_LOCK, CONTROL_THREAD_EXPIRY)
-			if err != nil {
-				log.Printf("ERR: %s", err.Error())
+			res := c.Expire(ctx, CONTROL_THREAD_LOCK, CONTROL_THREAD_EXPIRY)
+			if res.Err() != nil {
+				log.Printf("ERR: %s", res.Err().Error())
 				return false
 			}
 			return true
@@ -44,39 +45,42 @@ func grabControlThread(c redis.Client) bool {
 	return true
 }
 
-func dropControlThread(c redis.Client) {
-	val, err := c.Get(CONTROL_THREAD_LOCK)
+func dropControlThread(c *redis.Client) {
+	val, err := c.Get(ctx, CONTROL_THREAD_LOCK).Result()
 	if err != nil {
 		log.Printf("ERR: " + err.Error())
 		return
 	}
-	if bytes.Compare(val, []byte(fmt.Sprint(config.Config.HostID))) == 0 {
+	if bytes.Compare([]byte(val), []byte(fmt.Sprint(config.Config.HostID))) == 0 {
 		log.Printf("INFO: Found control thread with matching id %d, dropping", config.Config.HostID)
-		_, err = c.Del(CONTROL_THREAD_LOCK)
-		if err != nil {
-			log.Printf("ERR: " + err.Error())
+		res := c.Del(ctx, CONTROL_THREAD_LOCK)
+		if res.Err() != nil {
+			log.Printf("ERR: " + res.Err().Error())
 			return
 		}
 	}
 }
 
-func extendControlExpiry(c redis.Client) {
-	c.Expire(CONTROL_THREAD_LOCK, CONTROL_THREAD_EXPIRY)
+func extendControlExpiry(c *redis.Client) {
+	c.Expire(ctx, CONTROL_THREAD_LOCK, CONTROL_THREAD_EXPIRY)
 }
 
 func threadControl() {
+	if util.ShuttingDown {
+		return
+	}
+
 	if ControlThreadRunning {
-		log.Printf("WARN: Control thread start attempting, but it looks like it's already running")
+		//log.Printf("WARN: Control thread start attempting, but it looks like it's already running")
 		return
 	}
 
 	log.Printf("INFO: Starting control thread")
 
-	c, err := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
-	if err != nil {
-		log.Printf("ERR: " + err.Error())
-		return
-	}
+	util.RunningProcesses.Add(1)
+	defer util.RunningProcesses.Done()
+
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
 	// Check to see if we need to run control thread, or if it is currently
 	// running on another host
@@ -100,7 +104,7 @@ func threadControl() {
 
 				// Endlessly attempt to schedule checks
 				log.Printf("DEBUG: attempt to schedule checks")
-				members, err := c.Smembers(CHECKS_LIST)
+				members, err := c.SMembers(ctx, CHECKS_LIST).Result()
 				if err != nil {
 					log.Printf("ERR: Unable to pull from key " + CHECKS_LIST)
 				} else {
@@ -108,31 +112,30 @@ func threadControl() {
 					for i := 0; i < len(members); i++ {
 						// Pull last run and schedule interval to see if this needs to
 						// be scheduled for another run, and push onto POLL_QUEUE.
-						intervalRaw, err := c.Hget(string(members[i]), "interval")
+						intervalRaw, err := c.HGet(ctx, string(members[i]), "interval").Result()
 						interval, _ := strconv.ParseUint(string(intervalRaw), 10, 64)
 
-						command, err := c.Hget(string(members[i]), "command")
+						command, err := c.HGet(ctx, string(members[i]), "command").Result()
 
-						typeRaw, err := c.Hget(string(members[i]), "type")
+						typeRaw, err := c.HGet(ctx, string(members[i]), "type").Result()
 						checkType, _ := strconv.ParseUint(string(typeRaw), 10, 32)
 
 						curtime := uint64(time.Now().Unix())
 
-						items, err := c.Hgetall(string(members[i]) + ":hosts")
+						items, err := c.HGetAll(ctx, string(members[i])+":hosts").Result()
 						if err == nil {
-							for j := 0; j < len(items)/2; j += 2 {
-								host := string(items[j])
-								lastrun, _ := strconv.ParseUint(string(items[j+1]), 10, 64)
+							for host, v := range items {
+								lastrun, _ := strconv.ParseUint(string(v), 10, 64)
 								//log.Info(fmt.Sprintf("curtime = %d, lastrun = %d, diff = %d, interval = %d", curtime, lastrun, curtime-lastrun, interval ))
 								if curtime-lastrun >= interval {
 									log.Printf("INFO: Adding %s : %s to poll queue", members[i], host)
 									// Set lastrun to current time
-									e := c.Hset(string(members[i])+":hosts", host, []byte(fmt.Sprint(curtime)))
+									_, e := c.HSet(ctx, string(members[i])+":hosts", host, []byte(fmt.Sprint(curtime))).Result()
 									if e != nil {
 										log.Printf("ERR: " + e.Error())
 									}
 									// Also update reverse index
-									e = c.Hset(host+":checks", string(members[i]), []byte(fmt.Sprint(curtime)))
+									_, e = c.HSet(ctx, host+":checks", string(members[i]), []byte(fmt.Sprint(curtime))).Result()
 									if e != nil {
 										log.Printf("ERR: " + e.Error())
 									}
@@ -146,7 +149,7 @@ func threadControl() {
 									}
 									o, err := json.Marshal(obj)
 									if err == nil {
-										e = c.Rpush(POLL_QUEUE, o)
+										_, e = c.RPush(ctx, POLL_QUEUE, o).Result()
 										if e != nil {
 											log.Printf("ERR: " + e.Error())
 										}

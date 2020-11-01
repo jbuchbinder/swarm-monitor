@@ -9,16 +9,15 @@ import (
 	"log"
 	"time"
 
-	redis "github.com/jbuchbinder/go-redis"
+	"github.com/go-redis/redis/v8"
+	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
 func getContact(c redis.Client, name string) Contact {
 	contact := Contact{}
-	items, err := c.Hgetall(CONTACT_PREFIX + ":" + name)
+	items, err := c.HGetAll(ctx, CONTACT_PREFIX+":"+name).Result()
 	if err == nil {
-		for j := 0; j < len(items)/2; j += 2 {
-			k := string(items[j])
-			v := string(items[j+1])
+		for k, v := range items {
 			switch k {
 			case "name":
 				{
@@ -35,28 +34,31 @@ func getContact(c redis.Client, name string) Contact {
 }
 
 func threadAlert(threadNum int) {
-	c, cerr := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
-	if cerr != nil {
-		log.Printf("INFO: Alert thread #%d unable to acquire db connection", threadNum)
-		return
-	}
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
+
 	log.Printf("INFO: Starting alert thread #%d", threadNum)
+
+	util.RunningProcesses.Add(1)
+	defer util.RunningProcesses.Done()
+
 	for {
-		//log.Info(fmt.Sprintf("[%d] BLPOP %s 10", threadNum, ALERT_QUEUE))
-		out, oerr := c.Blpop(ALERT_QUEUE, 0)
+		if ControlThreadRunning {
+			log.Printf("WARN: Control thread start attempting, but it looks like it's already running")
+			return
+		}
+
+		log.Printf("DEBUG: [%d] BLPOP %s 10", threadNum, ALERT_QUEUE)
+		out, oerr := c.BLPop(ctx, time.Duration(5)*time.Second, ALERT_QUEUE).Result()
 		if oerr != nil {
 			log.Printf("ERR: [ALERT %d] %s", threadNum, oerr.Error())
 		} else {
 			if out == nil {
 				log.Printf("INFO: [ALERT %d] No output", threadNum)
-			} else {
-				if len(out) == 2 {
-					log.Printf("INFO: " + string(out[1]))
-				}
+			} else if len(out) == 2 {
+				log.Printf("INFO: " + string(out[1]))
 			}
 		}
 		// Avoid potential pig-pile
 		time.Sleep(10 * time.Millisecond)
 	}
-	return
 }

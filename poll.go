@@ -15,31 +15,34 @@ import (
 	"syscall"
 	"time"
 
-	redis "github.com/jbuchbinder/go-redis"
+	"github.com/go-redis/redis/v8"
+	//redis "github.com/jbuchbinder/go-redis"
+	//redis "github.com/funkygao/Go-Redis"
 	"github.com/jbuchbinder/swarm-monitor/checks"
 	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
-func updateCheckResults(c redis.Client, host string, check string, status int32, statusText string) {
+func updateCheckResults(c *redis.Client, host string, check string, status int32, statusText string) {
 	log.Printf("INFO: updateCheckResults %s %s : %d [%s]", host, check, status, statusText)
 	// TODO: persist update check results
 }
 
 func threadPoll(threadNum int) {
-	log.Printf("INFO: " + fmt.Sprintf("Starting poll thread #%d", threadNum))
-	c, cerr := redis.NewSynchClientWithSpec(getConnection(REDIS_READWRITE).connspec)
-	if cerr != nil {
-		log.Printf("INFO: " + fmt.Sprintf("Poll thread #%d unable to acquire db connection", threadNum))
-		return
-	}
+	log.Printf("INFO: Starting poll thread #%d", threadNum)
+
+	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
+
+	util.RunningProcesses.Add(1)
+	defer util.RunningProcesses.Done()
+
 	for {
 		if util.ShuttingDown {
 			log.Printf("INFO: thread %d shutting down", threadNum)
 			return
 		}
 
-		//log.Info(fmt.Sprintf("[%d] BLPOP %s 10", threadNum, POLL_QUEUE))
-		out, oerr := c.Blpop(POLL_QUEUE, 0)
+		log.Printf("INFO: [%d] BLPOP %s 10", threadNum, POLL_QUEUE)
+		out, oerr := c.BLPop(ctx, time.Duration(5)*time.Second, POLL_QUEUE).Result()
 		if oerr != nil {
 			log.Printf("ERR: [POLL %d] %s", threadNum, oerr.Error())
 		} else {
@@ -48,7 +51,7 @@ func threadPoll(threadNum int) {
 			} else {
 				if len(out) == 2 {
 					check := PollCheck{}
-					err := json.Unmarshal(out[1], &check)
+					err := json.Unmarshal([]byte(out[1]), &check)
 					if err == nil {
 						// Get check information
 
