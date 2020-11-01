@@ -17,7 +17,7 @@ ECHO "Populate checks"
 HMSET swarm:checks:check_disk name check_disk interval 300 timeout 30
 HMSET swarm:checks:check_disk type 1 command "/usr/lib64/nagios/plugins/check_nrpe -H $HOSTADDRESS$ -c check_disk -t 30"
 HMSET swarm:checks:check_disk:hosts swarm:hosts:hmon01 0 swarm:hosts:hmon02 0
-HMSET swarm:checks:check_dummy name check_dummy interval 300 timeout 30
+HMSET swarm:checks:check_dummy name check_dummy interval 30 timeout 10
 HMSET swarm:checks:check_dummy type 0 command check_dummy
 HMSET swarm:checks:check_dummy:hosts swarm:hosts:hmon01 0 swarm:hosts:hmon02 0
 HMSET swarm:hosts:hmon01:checks swarm:checks:check_disk 0

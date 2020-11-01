@@ -9,11 +9,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jbuchbinder/swarm-monitor/config"
+	"github.com/jbuchbinder/swarm-monitor/logging"
 	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
@@ -92,18 +92,18 @@ func main() {
 
 	ctx = context.Background()
 
-	log.Printf("INFO: Starting " + SERVICE_NAME + " services")
+	logging.Infof("Starting " + SERVICE_NAME + " services")
 
 	// Control thread
-	log.Printf("INFO: Starting control thread")
+	logging.Infof("Starting control thread")
 	go threadControl()
 
 	// Web thread
-	log.Printf("INFO: Starting web thread")
+	logging.Infof("Starting web thread")
 	//go threadWeb()
 
 	for t := 1; t <= config.Config.PoolSize; t++ {
-		log.Printf("INFO: Attempting to spawn thread #%d", t)
+		logging.Infof("Attempting to spawn thread #%d", t)
 		go threadAlert(t)
 		go threadPoll(t)
 	}

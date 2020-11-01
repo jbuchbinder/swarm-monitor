@@ -8,7 +8,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os/exec"
 	"strings"
@@ -19,16 +18,26 @@ import (
 	//redis "github.com/jbuchbinder/go-redis"
 	//redis "github.com/funkygao/Go-Redis"
 	"github.com/jbuchbinder/swarm-monitor/checks"
+	"github.com/jbuchbinder/swarm-monitor/config"
+	"github.com/jbuchbinder/swarm-monitor/logging"
 	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
-func updateCheckResults(c *redis.Client, host string, check string, status int32, statusText string) {
+func updateCheckResults(c *redis.Client, ts time.Time, host string, check string, status int32, statusText string) {
 	log.Printf("INFO: updateCheckResults %s %s : %d [%s]", host, check, status, statusText)
-	// TODO: persist update check results
+	ev := HistoryEvent{
+		Timestamp:   ts,
+		SwarmHostID: config.Config.HostID,
+		Host:        host,
+		Check:       check,
+		Status:      status,
+		StatusText:  statusText,
+	}
+	ev.PersistEvent(c)
 }
 
 func threadPoll(threadNum int) {
-	log.Printf("INFO: Starting poll thread #%d", threadNum)
+	logging.Infof("Starting poll thread #%d", threadNum)
 
 	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
@@ -37,17 +46,17 @@ func threadPoll(threadNum int) {
 
 	for {
 		if util.ShuttingDown {
-			log.Printf("INFO: thread %d shutting down", threadNum)
+			logging.Infof("thread %d shutting down", threadNum)
 			return
 		}
 
-		log.Printf("INFO: [%d] BLPOP %s 10", threadNum, POLL_QUEUE)
+		logging.Debugf("[%d] BLPOP %s 10", threadNum, POLL_QUEUE)
 		out, oerr := c.BLPop(ctx, time.Duration(5)*time.Second, POLL_QUEUE).Result()
 		if oerr != nil {
-			log.Printf("ERR: [POLL %d] %s", threadNum, oerr.Error())
+			logging.Tracef("[POLL %d] %s", threadNum, oerr.Error())
 		} else {
 			if out == nil {
-				log.Printf("INFO: [ALERT %d] No output", threadNum)
+				logging.Infof("[ALERT %d] No output", threadNum)
 			} else {
 				if len(out) == 2 {
 					check := PollCheck{}
@@ -62,12 +71,12 @@ func threadPoll(threadNum int) {
 							{
 								chk, err := checks.InstantiateChecker(check.Command)
 								if err != nil {
-									log.Printf("ERR: " + err.Error())
+									logging.Critf(err.Error())
 									break
 								}
 								exitStatus, msg := chk.Check(check.Host)
-								log.Printf("INFO: " + fmt.Sprintf("Returned : %d:%q\n", exitStatus, msg))
-								updateCheckResults(c, check.Host, check.CheckName, int32(exitStatus), msg)
+								logging.Infof("Returned : %d:%q", exitStatus, msg)
+								updateCheckResults(c, time.Now(), check.Host, check.CheckName, int32(exitStatus), msg)
 							}
 						case checkType == checks.CheckTypeNagios:
 							{
@@ -108,13 +117,13 @@ func threadPoll(threadNum int) {
 										// Handle return status
 										exitStatus = 0
 									}
-									log.Printf("INFO: Returned : %d:%q\n", exitStatus, msg)
-									updateCheckResults(c, check.Host, check.CheckName, int32(exitStatus), msg.String())
+									logging.Infof("Returned : %d:%q", exitStatus, msg)
+									updateCheckResults(c, time.Now(), check.Host, check.CheckName, int32(exitStatus), msg.String())
 								}
 							}
 						}
 					} else {
-						log.Printf("ERR: [ALERT %d] %s", threadNum, err.Error())
+						logging.Debugf("[ALERT %d] %s", threadNum, err.Error())
 					}
 				}
 			}

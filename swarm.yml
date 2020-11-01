@@ -1,2 +1,9 @@
 debug: true
+log-level: INFO
 port: 8080
+host-id: 1
+pool-size: 5
+database:
+  host: localhost
+  port: 6379
+  db: 13

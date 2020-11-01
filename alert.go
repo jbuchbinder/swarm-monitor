@@ -6,10 +6,10 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/jbuchbinder/swarm-monitor/logging"
 	"github.com/jbuchbinder/swarm-monitor/util"
 )
 
@@ -36,26 +36,26 @@ func getContact(c redis.Client, name string) Contact {
 func threadAlert(threadNum int) {
 	c := redis.NewClient(getConnection(REDIS_READWRITE).connspec)
 
-	log.Printf("INFO: Starting alert thread #%d", threadNum)
+	logging.Infof("Starting alert thread #%d", threadNum)
 
 	util.RunningProcesses.Add(1)
 	defer util.RunningProcesses.Done()
 
 	for {
 		if ControlThreadRunning {
-			log.Printf("WARN: Control thread start attempting, but it looks like it's already running")
+			logging.Debugf("Control thread start attempting, but it looks like it's already running")
 			return
 		}
 
-		log.Printf("DEBUG: [%d] BLPOP %s 10", threadNum, ALERT_QUEUE)
+		logging.Debugf("[%d] BLPOP %s 10", threadNum, ALERT_QUEUE)
 		out, oerr := c.BLPop(ctx, time.Duration(5)*time.Second, ALERT_QUEUE).Result()
 		if oerr != nil {
-			log.Printf("ERR: [ALERT %d] %s", threadNum, oerr.Error())
+			logging.Debugf("[ALERT %d] %s", threadNum, oerr.Error())
 		} else {
 			if out == nil {
-				log.Printf("INFO: [ALERT %d] No output", threadNum)
+				logging.Infof("[ALERT %d] No output", threadNum)
 			} else if len(out) == 2 {
-				log.Printf("INFO: " + string(out[1]))
+				logging.Infof(string(out[1]))
 			}
 		}
 		// Avoid potential pig-pile

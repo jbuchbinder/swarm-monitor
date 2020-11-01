@@ -14,22 +14,25 @@ import (
 )
 
 type HistoryEvent struct {
-	Timestamp  time.Time
-	Id         int64
-	HistoryKey string
-	Host       string
-	Check      string
+	Timestamp   time.Time
+	ID          int64
+	HistoryKey  string
+	SwarmHostID int
+	Host        string
+	Check       string
+	Status      int32
+	StatusText  string
 	// TODO: FIXME: More keys
 }
 
-func (ev *HistoryEvent) PersistAtomicHistoryKV(c redis.Client, k string, v []byte) {
+func (ev *HistoryEvent) PersistAtomicHistoryKV(c *redis.Client, k string, v []byte) {
 	_, err := c.HSet(ctx, ev.HistoryKey, k, v).Result()
 	if err != nil {
 		log.Printf("ERR: " + fmt.Sprintf("Error persisting %s k %s v %s", ev.HistoryKey, k, v))
 	}
 }
 
-func (ev *HistoryEvent) persistEvent(c redis.Client) {
+func (ev *HistoryEvent) PersistEvent(c *redis.Client) {
 	// Get new ever-incrementing event id
 	id, err := c.Incr(ctx, HISTORY_KEY).Result()
 	if err != nil {
@@ -38,7 +41,7 @@ func (ev *HistoryEvent) persistEvent(c redis.Client) {
 	}
 
 	// Persist to object internally
-	ev.Id = id
+	ev.ID = id
 
 	// New key
 	historyKey := HISTORY_BASE + ":id:" + string(id)
@@ -59,8 +62,8 @@ func (ev *HistoryEvent) persistEvent(c redis.Client) {
 	}
 
 	// 2. Date index
-	log.Printf("INFO: Logging to " + HISTORY_LIST + ":date:" + ev.Timestamp.Format("%Y-%m-%d"))
-	_, err = c.ZAdd(ctx, HISTORY_LIST+":date:"+ev.Timestamp.Format("%Y-%m-%d"), &redis.Z{
+	log.Printf("INFO: Logging to " + HISTORY_LIST + ":date:" + ev.Timestamp.Format("2006-01-02"))
+	_, err = c.ZAdd(ctx, HISTORY_LIST+":date:"+ev.Timestamp.Format("2006-01-02"), &redis.Z{
 		Score:  float64(ev.Timestamp.Unix()),
 		Member: []byte(historyKey),
 	}).Result()
@@ -81,7 +84,6 @@ func (ev *HistoryEvent) persistEvent(c redis.Client) {
 	// 4. Check index
 	log.Printf("INFO: Logging to " + HISTORY_LIST + ":check:" + ev.Check)
 	_, err = c.ZAdd(ctx, HISTORY_LIST+":check:"+ev.Check, &redis.Z{
-
 		Score:  float64(ev.Timestamp.Unix()),
 		Member: []byte(historyKey),
 	}).Result()
