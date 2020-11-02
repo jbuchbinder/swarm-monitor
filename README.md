@@ -1,5 +1,7 @@
 # SWARM-MONITOR
 
+[![Build Status](https://travis-ci.org/jbuchbinder/swarm-monitor.svg?branch=master)](https://travis-ci.org/jbuchbinder/swarm-monitor)
+
 Attempt to replace Nagios with a multi-threaded, clustered solution
 based on Redis and Go.
 
