@@ -5,3 +5,4 @@ go:
 script:
   - go get -d -v
   - go test -v
+sudo: false
