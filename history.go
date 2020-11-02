@@ -44,7 +44,7 @@ func (ev *HistoryEvent) PersistEvent(c *redis.Client) {
 	ev.ID = id
 
 	// New key
-	historyKey := HISTORY_BASE + ":id:" + string(id)
+	historyKey := HISTORY_BASE + ":id:" + fmt.Sprintf("%d", id)
 	ev.HistoryKey = historyKey
 
 	// Persist values to history key
