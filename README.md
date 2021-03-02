@@ -1,6 +1,8 @@
 # SWARM-MONITOR
 
 [![Build Status](https://travis-ci.org/jbuchbinder/swarm-monitor.svg?branch=master)](https://travis-ci.org/jbuchbinder/swarm-monitor)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jbuchbinder/swarm-monitor)](https://goreportcard.com/report/github.com/jbuchbinder/swarm-monitor)
+[![GoDoc](https://godoc.org/github.com/jbuchbinder/swarm-monitor?status.png)](https://godoc.org/github.com/jbuchbinder/swarm-monitor)
 
 Attempt to replace Nagios with a multi-threaded, clustered solution
 based on Redis and Go.
