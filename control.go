@@ -43,21 +43,21 @@ func grabControlThread(c *redis.Client) bool {
 		// Already there
 		return false
 	}
-	log.Printf("ERR: grabControlThread: " + err.Error())
+	log.Printf("ERR: grabControlThread: %s,", err.Error())
 	return true
 }
 
 func dropControlThread(c *redis.Client) {
 	val, err := c.Get(ctx, CONTROL_THREAD_LOCK).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 		return
 	}
-	if bytes.Compare([]byte(val), []byte(fmt.Sprint(config.Config.HostID))) == 0 {
+	if bytes.Equal([]byte(val), []byte(fmt.Sprint(config.Config.HostID))) {
 		logging.Infof("Found control thread with matching id %d, dropping", config.Config.HostID)
 		res := c.Del(ctx, CONTROL_THREAD_LOCK)
 		if res.Err() != nil {
-			log.Printf("ERR: " + res.Err().Error())
+			log.Printf("ERR: %s", res.Err().Error())
 			return
 		}
 	}
@@ -152,12 +152,12 @@ func threadControl() {
 									// Set lastrun to current time
 									_, e := c.HSet(ctx, string(m)+":hosts", host, []byte(fmt.Sprint(curtime))).Result()
 									if e != nil {
-										log.Printf("ERR: " + e.Error())
+										log.Printf("ERR: %s", e.Error())
 									}
 									// Also update reverse index
 									_, e = c.HSet(ctx, host+":checks", string(m), []byte(fmt.Sprint(curtime))).Result()
 									if e != nil {
-										log.Printf("ERR: " + e.Error())
+										log.Printf("ERR: %s", e.Error())
 									}
 									// Form JSON object to serialize onto the scheduler stack
 									obj := PollCheck{
@@ -172,10 +172,10 @@ func threadControl() {
 									if err == nil {
 										_, e = c.RPush(ctx, POLL_QUEUE, o).Result()
 										if e != nil {
-											log.Printf("ERR: " + e.Error())
+											log.Printf("ERR: %s", e.Error())
 										}
 									} else {
-										log.Printf("ERR: " + e.Error())
+										log.Printf("ERR: %s", e.Error())
 									}
 								}(c, host, members[i], checkType, command, curtime)
 							}

@@ -58,12 +58,10 @@ func getConnection(write bool) redisConnection {
 		c.host = config.Config.Database.Host
 		c.port = config.Config.Database.Port
 		c.db = config.Config.Database.Db
-		//c.password = ""
 	} else {
 		c.host = config.Config.Database.Host
 		c.port = config.Config.Database.Port
 		c.db = config.Config.Database.Db
-		//c.password = ""
 	}
 
 	c.connspec = &redis.Options{
@@ -71,9 +69,6 @@ func getConnection(write bool) redisConnection {
 		Password: c.password,
 		DB:       c.db,
 	}
-
-	//redis.DefaultSpec().Host(c.host).Port(c.port).Db(c.db)
-	//.Password(c.password)
 
 	return c
 }
@@ -100,7 +95,7 @@ func main() {
 
 	// Web thread
 	logging.Infof("Starting web thread")
-	//go threadWeb()
+	go threadWeb()
 
 	for t := 1; t <= config.Config.PoolSize; t++ {
 		logging.Infof("Attempting to spawn thread #%d", t)

@@ -28,7 +28,7 @@ type HistoryEvent struct {
 func (ev *HistoryEvent) PersistAtomicHistoryKV(c *redis.Client, k string, v []byte) {
 	_, err := c.HSet(ctx, ev.HistoryKey, k, v).Result()
 	if err != nil {
-		log.Printf("ERR: " + fmt.Sprintf("Error persisting %s k %s v %s", ev.HistoryKey, k, v))
+		log.Printf("ERR: %s", fmt.Sprintf("Error persisting %s k %s v %s", ev.HistoryKey, k, v))
 	}
 }
 
@@ -36,7 +36,7 @@ func (ev *HistoryEvent) PersistEvent(c *redis.Client) {
 	// Get new ever-incrementing event id
 	id, err := c.Incr(ctx, HISTORY_KEY).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 		return
 	}
 
@@ -58,37 +58,37 @@ func (ev *HistoryEvent) PersistEvent(c *redis.Client) {
 		Member: []byte(historyKey),
 	}).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 	}
 
 	// 2. Date index
-	log.Printf("INFO: Logging to " + HISTORY_LIST + ":date:" + ev.Timestamp.Format("2006-01-02"))
+	log.Printf("INFO: Logging to %s:date:%s", HISTORY_LIST, ev.Timestamp.Format("2006-01-02"))
 	_, err = c.ZAdd(ctx, HISTORY_LIST+":date:"+ev.Timestamp.Format("2006-01-02"), &redis.Z{
 		Score:  float64(ev.Timestamp.Unix()),
 		Member: []byte(historyKey),
 	}).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 	}
 
 	// 3. Host index
-	log.Printf("INFO: Logging to " + HISTORY_LIST + ":host:" + ev.Host)
+	log.Printf("INFO: Logging to %s:host:%s", HISTORY_LIST, ev.Host)
 	_, err = c.ZAdd(ctx, HISTORY_LIST+":host:"+ev.Host, &redis.Z{
 		Score:  float64(ev.Timestamp.Unix()),
 		Member: []byte(historyKey),
 	}).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 	}
 
 	// 4. Check index
-	log.Printf("INFO: Logging to " + HISTORY_LIST + ":check:" + ev.Check)
+	log.Printf("INFO: Logging to %s:check:%s", HISTORY_LIST, ev.Check)
 	_, err = c.ZAdd(ctx, HISTORY_LIST+":check:"+ev.Check, &redis.Z{
 		Score:  float64(ev.Timestamp.Unix()),
 		Member: []byte(historyKey),
 	}).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 	}
 
 }

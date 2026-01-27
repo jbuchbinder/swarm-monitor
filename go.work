@@ -1,0 +1,9 @@
+go 1.25.6
+
+use (
+	.
+	./checks
+	./config
+	./logging
+	./util
+)

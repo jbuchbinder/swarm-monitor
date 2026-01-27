@@ -1,7 +1,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/jbuchbinder/swarm-monitor/logging"
 	"gopkg.in/yaml.v2"
@@ -20,9 +20,10 @@ type SwarmConfig struct {
 	PoolSize             int    `yaml:"pool-size"`
 	DefaultCheckInterval uint64 `yaml:"check-interval"`
 	Database             struct {
-		Host string `yaml:"host"`
-		Port int    `yaml:"port"`
-		Db   int    `yaml:"db"`
+		Host     string `yaml:"host"`
+		Port     int    `yaml:"port"`
+		Db       int    `yaml:"db"`
+		Password string `yaml:"password"`
 	} `yaml:"database"`
 }
 
@@ -42,7 +43,7 @@ func LoadConfigWithDefaults(configPath string) (*SwarmConfig, error) {
 	cachedConfigPath = configPath
 	c := &SwarmConfig{}
 	c.SetDefaults()
-	data, err := ioutil.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return c, err
 	}
@@ -56,7 +57,7 @@ func LoadConfigWithDefaults(configPath string) (*SwarmConfig, error) {
 func ConfigReload() error {
 	c := &SwarmConfig{}
 	c.SetDefaults()
-	data, err := ioutil.ReadFile(cachedConfigPath)
+	data, err := os.ReadFile(cachedConfigPath)
 	if err != nil {
 		return err
 	}

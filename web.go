@@ -38,7 +38,7 @@ func (serv ApiService) ApiAddHost(h HostDefinition) {
 	// Check for existing host definition
 	exists, err := c.SIsMember(ctx, HOSTS_LIST, []byte(HOST_PREFIX+":"+h.Name)).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -61,7 +61,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 
 	hmembers, e := c.SMembers(ctx, HOSTS_LIST).Result()
 	if e != nil {
-		log.Printf("ERR: " + e.Error())
+		log.Printf("ERR: %s", e.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -76,7 +76,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 		// Grab full info from member
 		h, e := c.HGetAll(ctx, hmember).Result()
 		if e != nil {
-			log.Printf("ERR: " + e.Error())
+			log.Printf("ERR: %s", e.Error())
 		} else {
 			for k, v := range h {
 				switch k {
@@ -90,7 +90,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 					}
 				default:
 					{
-						log.Printf("DEBUG: Unknown key " + k + " sighted in host " + hmember)
+						log.Printf("DEBUG: Unknown key %s sighted in host %s", k, hmember)
 					}
 				}
 			}
@@ -98,7 +98,7 @@ func (serv ApiService) ApiGetHosts() (r []HostDefinition) {
 			// Get list of checks
 			h, e := c.HGetAll(ctx, hmember+":checks").Result()
 			if e != nil {
-				log.Printf("ERR: " + e.Error())
+				log.Printf("ERR: %s", e.Error())
 			} else {
 				hdef.Checks = make([]string, len(h)/2)
 				for _, k := range h {
@@ -119,7 +119,7 @@ func (serv ApiService) ApiAddContact(d Contact) {
 	// Check for existing host definition
 	exists, err := c.SIsMember(ctx, CONTACT_LIST, []byte(CONTACT_PREFIX+":"+d.Name)).Result()
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -143,7 +143,7 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 
 	cmembers, e := c.SMembers(ctx, CONTACT_LIST).Result()
 	if e != nil {
-		log.Printf("ERR: " + e.Error())
+		log.Printf("ERR: %s", e.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}
@@ -158,7 +158,7 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 		// Grab full info from member
 		h, e := c.HGetAll(ctx, cmember).Result()
 		if e != nil {
-			log.Printf("ERR: " + e.Error())
+			log.Printf("ERR: %s", e.Error())
 		} else {
 			for k, v := range h {
 				switch k {
@@ -176,7 +176,7 @@ func (serv ApiService) ApiGetContacts() (r []Contact) {
 					}
 				default:
 					{
-						log.Printf("DEBUG: Unknown key " + k + " sighted in contact " + cmember)
+						log.Printf("DEBUG: Unknown key %s sighted in contact %s", k, cmember)
 					}
 				}
 			}
@@ -193,7 +193,7 @@ func (serv ApiService) ApiGetStatus() (r []CheckStatus) {
 
 	cmembers, e := c.SMembers(ctx, CHECKS_LIST).Result()
 	if e != nil {
-		log.Printf("ERR: " + e.Error())
+		log.Printf("ERR: %s", e.Error())
 		serv.ResponseBuilder().SetResponseCode(500).WriteAndOveride([]byte("Error connecting to backend"))
 		return
 	}

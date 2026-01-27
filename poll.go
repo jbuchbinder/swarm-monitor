@@ -95,7 +95,7 @@ func threadPoll(threadNum int) {
 								cmd.Stdout = &bout
 								err := cmd.Start()
 								if err != nil {
-									log.Printf("ERR: " + err.Error())
+									log.Printf("ERR: %s", err.Error())
 								} else {
 									// TODO: Configurable timeout for Nagios plugins
 									var exitStatus int

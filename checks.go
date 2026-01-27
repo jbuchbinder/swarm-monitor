@@ -14,7 +14,7 @@ import (
 func getMembersFromObj(c redis.Client, o string, p string) []string {
 	entries, err := c.Smembers(o + ":" + p)
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 		ret := make([]string, 0)
 		return ret
 	}
@@ -29,7 +29,7 @@ func getMembersFromObj(c redis.Client, o string, p string) []string {
 func getAllMembersFromService(c redis.Client, o string) []string {
 	hosts, err := c.Smembers(o + ":hosts")
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 	}
 	h := make([]string, len(hosts))
 	for i := 0; i <= len(hosts); i++ {
@@ -37,7 +37,7 @@ func getAllMembersFromService(c redis.Client, o string) []string {
 	}
 	groups, err := c.Smembers(o + ":groups")
 	if err != nil {
-		log.Printf("ERR: " + err.Error())
+		log.Printf("ERR: %s", err.Error())
 	}
 	for j := 0; j <= len(groups); j++ {
 		m := getMembersFromObj(c, string(groups[j]), "members")
